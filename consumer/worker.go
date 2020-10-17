@@ -1,6 +1,8 @@
 package consumer
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"strconv"
 
@@ -9,7 +11,7 @@ import (
 	"gopkg.in/redis.v5"
 )
 
-var tag = "[WORKER]"
+var tag = fmt.Sprintf("[WORKER|%s]", jobType)
 
 // InitializeWorker starts a connection with the redis server and inits a job handler
 func (jb *JobBuffer) InitializeWorker() {
@@ -29,9 +31,11 @@ func (jb *JobBuffer) InitializeWorker() {
 }
 
 // fetchNewJobs fetches a new batch of jobs from queue
-func (jb *JobBuffer) fetchNewJobs() []string {
+func (jb *JobBuffer) fetchNewJobs() []dal.RequestStats {
 	bs, _ := strconv.Atoi(batchSize)
-	requests := make([]string, bs)
+	requests := make([]dal.RequestStats, bs)
+
+	var currentRequest dal.RequestStats
 
 	for idx := range requests {
 		res, err := jb.redisClient.BLPop(0, queueName).Result()
@@ -39,8 +43,17 @@ func (jb *JobBuffer) fetchNewJobs() []string {
 		if err != nil {
 			log.Printf("%s failed to fetch new job from redis queue %s | errorLog: %s", tag, queueName, err)
 		} else {
-			if len(res) == 2 { // command string + result string in the total result array
-				requests[idx] = res[1]
+
+			if len(res) == 2 { // [command string, result string]
+				err := json.Unmarshal([]byte(res[1]), &currentRequest)
+
+				if err == nil { // yeah we will drop this job because we cannnot parse it
+					//now and we won't be able to parse then, it's the same faulty bytes string
+					requests[idx] = currentRequest
+				} else {
+					// let's just log this here for sack of clarity in logs
+					log.Fatalf("%s found invalid job bytes string %s, failed to parse", tag, res[1])
+				}
 			}
 		}
 	}
@@ -49,7 +62,7 @@ func (jb *JobBuffer) fetchNewJobs() []string {
 }
 
 // executeJobs writes the batch of jobs data fetched from redis into DB
-func (jb *JobBuffer) executeJobs(requests []string) bool {
+func (jb *JobBuffer) executeJobs(requests []dal.RequestStats) bool {
 	switch jobType {
 
 	case dbWrite:
@@ -63,13 +76,22 @@ func (jb *JobBuffer) executeJobs(requests []string) bool {
 }
 
 // rollbackReadJobs writes back the jobs into the queue
-func (jb *JobBuffer) rollbackReadJobs(requests []string) {
-	// push them back on the other side (right side) so they get delayed a bit
-	// and not be caught in an infinite loop reading and writing those jobs
-	_, err := jb.redisClient.RPush(queueName, requests).Result()
+func (jb *JobBuffer) rollbackReadJobs(requests []dal.RequestStats) {
+	for _, req := range requests {
 
-	if err != nil {
-		log.Fatalf("%s Failed to write back jobs to queue | error %s", tag, err)
+		dataBytes, err := json.Marshal(req)
+		if err != nil {
+			log.Fatalf("%s Failed to parse back job into bytes | error %s", tag, err)
+		} else {
+
+			// push them back on the other side (right side) so they get delayed a bit
+			// and not be caught in an infinite loop reading and writing those jobs
+			_, err = jb.redisClient.RPush(queueName, dataBytes).Result()
+			if err != nil {
+				log.Fatalf("%s Failed to write back job {%s} to queue | error %s", tag, dataBytes, err)
+			}
+		}
+
 	}
 }
 
@@ -77,7 +99,7 @@ func (jb *JobBuffer) rollbackReadJobs(requests []string) {
 func (jb *JobBuffer) FetchAndExecute() int {
 	requests := jb.fetchNewJobs()
 
-	if len(requests) <= 0 {
+	if len(requests) <= 0 { // a lot will say why less but I trust no one xd
 		return 0
 	}
 

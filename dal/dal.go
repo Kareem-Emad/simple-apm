@@ -3,7 +3,9 @@ package dal
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"strings"
+	"time"
 
 	"github.com/gocql/gocql"
 )
@@ -12,13 +14,15 @@ var tag = "[DAL]"
 
 // IntializeDBSession starts a new session with cassendra DB
 func (rm *RequestModel) IntializeDBSession() {
-	cluster := gocql.NewCluster("192.168.1.1", "192.168.1.2", "192.168.1.3")
+	cluster := gocql.NewCluster(strings.Split(cassendraHosts, ",")...)
+
 	cluster.Authenticator = gocql.PasswordAuthenticator{
 		Username: dbUser,
 		Password: dbPassowrd,
 	}
 	cluster.Keyspace = cassandraKeySpace
 	cluster.Consistency = gocql.Quorum
+
 	session, err := cluster.CreateSession()
 
 	if err != nil {
@@ -29,22 +33,37 @@ func (rm *RequestModel) IntializeDBSession() {
 }
 
 // CreateRequestStats batch based insertion method to create new request state objects in DB
-func (rm *RequestModel) CreateRequestStats(requests []string) bool {
-	cqlStatment := "BEGIN BATCH\n"
+func (rm *RequestModel) CreateRequestStats(requests []RequestStats) bool {
+	batch := rm.dbSession.NewBatch(gocql.LoggedBatch)
 
 	for _, req := range requests {
-		reqFields := strings.Split(req, ",")
+		if ValidateRequestStats(req) == true {
+			queryString := "INSERT INTO %s.requests (url, method, status, response_time, created_at) VALUES (%s, %s, %s, %s, %s) IF NOT EXISTS;"
+			cqlStatment := fmt.Sprintf(queryString, dbName, req.URL, req.Method, req.Status, req.TimeInMilliseconds, time.Now().String())
 
-		queryString := "INSERT INTO %s.requests (url, method, status, response_time) VALUES (%s, %s, %s, %s) IF NOT EXISTS;"
-		cqlStatment += fmt.Sprintf(queryString, dbName, reqFields[0], reqFields[1], reqFields[2], reqFields[3])
+			batch.Query(cqlStatment)
+		}
 	}
 
-	cqlStatment += "\nAPPLY BATCH;"
-
-	err := rm.dbSession.Query(cqlStatment)
-	if err != nil {
-		log.Printf("%s failed to execute batch of insertions | error: %s", tag, err)
+	if err := rm.dbSession.ExecuteBatch(batch); err == nil {
+		log.Printf("%s failed to execute batch of request stats insertions | error: %s", tag, err)
 		return false
 	}
 	return true
+}
+
+// ValidateRequestStats checks that the data in this request object is valid to be inserted in DB
+func ValidateRequestStats(req RequestStats) bool {
+	validStatus := req.Status >= 200 && req.Status <= 500
+	validResponseTime := req.TimeInMilliseconds > 0
+
+	url, err := url.ParseRequestURI(req.URL)
+	validURL := (err == nil && url.Scheme != "" && url.Host != "")
+
+	validHTTPMethods := []string{"GET", "POST", "PATCH", "HEAD", "DELETE"}
+	validMethod := isInArray(validHTTPMethods, strings.ToUpper(req.Method))
+
+	validServiceName := (req.Service != "")
+
+	return validStatus && validResponseTime && validURL && validMethod && validServiceName
 }
