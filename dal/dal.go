@@ -38,14 +38,16 @@ func (rm *RequestModel) CreateRequestStats(requests []RequestStats) bool {
 
 	for _, req := range requests {
 		if ValidateRequestStats(req) == true {
-			queryString := "INSERT INTO %s.requests (url, method, status, response_time, created_at) VALUES (%s, %s, %s, %s, %s) IF NOT EXISTS;"
-			cqlStatment := fmt.Sprintf(queryString, dbName, req.URL, req.Method, req.Status, req.TimeInMilliseconds, time.Now().String())
+			queryString := "INSERT INTO %s.request_info (service_name, created_at,  method, url, status, response_time)   VALUES ('%s', '%s', '%s', '%s', %d, %d)"
+
+			cqlStatment := fmt.Sprintf(queryString, cassandraKeySpace, req.Service, time.Now().Format(time.RFC3339), req.Method, req.URL, req.Status, req.TimeInMilliseconds)
+			log.Printf("%s adding query to batch: %s", tag, cqlStatment)
 
 			batch.Query(cqlStatment)
 		}
 	}
 
-	if err := rm.dbSession.ExecuteBatch(batch); err == nil {
+	if err := rm.dbSession.ExecuteBatch(batch); err != nil {
 		log.Printf("%s failed to execute batch of request stats insertions | error: %s", tag, err)
 		return false
 	}

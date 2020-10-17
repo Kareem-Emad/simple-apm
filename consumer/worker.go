@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/Kareem-Emad/new-new-relic/dal"
 	elasticSearch "github.com/Kareem-Emad/new-new-relic/elastic_search"
@@ -26,16 +25,19 @@ func (jb *JobBuffer) InitializeWorker() {
 		rm.IntializeDBSession()
 
 		jb.requestModel = &rm
+		return
 	case esSync:
+		return
 	}
 }
 
 // fetchNewJobs fetches a new batch of jobs from queue
 func (jb *JobBuffer) fetchNewJobs() []dal.RequestStats {
-	bs, _ := strconv.Atoi(batchSize)
-	requests := make([]dal.RequestStats, bs)
+	requests := make([]dal.RequestStats, batchSize)
 
 	var currentRequest dal.RequestStats
+
+	log.Printf("%s listening on queue {%s} to fetch job batch of size {%d}", tag, queueName, batchSize)
 
 	for idx := range requests {
 		res, err := jb.redisClient.BLPop(0, queueName).Result()
@@ -57,7 +59,7 @@ func (jb *JobBuffer) fetchNewJobs() []dal.RequestStats {
 			}
 		}
 	}
-
+	log.Printf("%s collected {%d} jobs from queue", tag, len(requests))
 	return requests
 }
 
@@ -106,7 +108,7 @@ func (jb *JobBuffer) FetchAndExecute() int {
 	status := jb.executeJobs(requests)
 
 	if status == false { // we failed to write those to the database, let's put them back where we found them
-		jb.rollbackReadJobs(requests)
+		// jb.rollbackReadJobs(requests)
 		return -1
 	}
 
