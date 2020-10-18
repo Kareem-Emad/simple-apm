@@ -4,8 +4,7 @@
 [![Build Status:](https://github.com/Kareem-Emad/simple-apm/workflows/Build/badge.svg)](https://github.com/Kareem-Emad/simple-apm/actions)
 [![GoReportCard example](https://goreportcard.com/badge/github.com/Kareem-Emad/simple-apm)](https://goreportcard.com/report/Kareem-Emad/simple-apm)
 
-Dynamic event managment service based on publisher/subscriber model, it allows your service call sequence to be
-as dynamic as a DB change
+an open source/in-house application performance management server that monitors your services and allows you to perform historical/real-time analysis for your endpoints
 
 ## setup
 
@@ -14,6 +13,11 @@ To run server
 ```shell
 # run one instance of sever to handle http request and push jobs in queues
 make run run_server
+```
+
+To run worker
+
+```shell
 # you need two types of workers online at least
 make run_worker job_type=ES_SYNC target_queue=sync_es batch_size=5 # elastic search sync worker
 make run_worker job_type=DB_WRITE target_queue=cassendra_write batch_size=5 # cassendra DB write worker
@@ -40,8 +44,7 @@ List of envs needs to be setup before starting the service
 ## SDK
 
 Currently we have sdks for:
-
-- javscript: <https://github.com/Kareem-Emad/simple-apm-js>
+None :\
 
 ## custom SDK
 
