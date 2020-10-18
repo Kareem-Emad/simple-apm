@@ -12,9 +12,18 @@ as dynamic as a DB change
 To run server
 
 ```shell
-make run run_mode=server
-make run run_mode=worker
+# run one instance of sever to handle http request and push jobs in queues
+make run run_server
+# you need two types of workers online at least
+make run_worker job_type=ES_SYNC target_queue=sync_es batch_size=5 # elastic search sync worker
+make run_worker job_type=DB_WRITE target_queue=cassendra_write batch_size=5 # cassendra DB write worker
 ```
+
+params:
+
+- `batch_size` number of jobs to handle by worker per one exec
+- `target_queue` the job queue worker will listen to
+- `job_type` the type of job the spawned worker will handle
 
 ## Environment Variables
 
@@ -25,10 +34,8 @@ List of envs needs to be setup before starting the service
 - `JWT_SECRET` secret used to sign and verify tokens between sdk/server
 - `CASSENDRA_KEY_SPACE` name of the keyspace the tables are stored
 - `CASSENDRA_HOSTS` number of cassendra nodes that are under simple-apm
-- `JOB_TYPE` type of the job the consumer starting will handle
-- `WRITE_BATCH_SIZE` how many jobs to handle in one transactions
 - `SERVER_PORT` port used by http server
-- `QUEUE_NAME` name of the queue the consumer is listening to
+- `ES_BULK_INSERTION_CONCURRENCY` max concurrency level use in bulk es index updates
 
 ## SDK
 

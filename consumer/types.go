@@ -1,8 +1,8 @@
 package consumer
 
 import (
-	"github.com/Kareem-Emad/new-new-relic/dal"
-	"github.com/Kareem-Emad/new-new-relic/elasticsearchmanager"
+	"github.com/Kareem-Emad/simple-apm/dal"
+	"github.com/Kareem-Emad/simple-apm/elasticsearchmanager"
 	"gopkg.in/redis.v5"
 )
 
@@ -11,6 +11,9 @@ type JobBuffer struct {
 	redisClient  *redis.Client
 	esClient     *elasticsearchmanager.ESClient
 	requestModel *dal.RequestModel
+	targetQueue  string
+	jobType      string
+	batchSize    int
 }
 
 const dbWrite = "DB_WRITE"

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/Kareem-Emad/new-new-relic/dal"
+	"github.com/Kareem-Emad/simple-apm/dal"
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esutil"
 )

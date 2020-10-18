@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/Kareem-Emad/new-new-relic/dal"
+	"github.com/Kareem-Emad/simple-apm/dal"
 	"gopkg.in/redis.v5"
 )
 

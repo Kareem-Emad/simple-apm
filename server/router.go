@@ -6,9 +6,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Kareem-Emad/new-new-relic/auth"
-	"github.com/Kareem-Emad/new-new-relic/dal"
-	"github.com/Kareem-Emad/new-new-relic/producer"
+	"github.com/Kareem-Emad/simple-apm/auth"
+	"github.com/Kareem-Emad/simple-apm/dal"
+	"github.com/Kareem-Emad/simple-apm/producer"
 	"github.com/gorilla/mux"
 )
 

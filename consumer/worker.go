@@ -5,15 +5,21 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Kareem-Emad/new-new-relic/dal"
-	"github.com/Kareem-Emad/new-new-relic/elasticsearchmanager"
+	"github.com/Kareem-Emad/simple-apm/dal"
+	"github.com/Kareem-Emad/simple-apm/elasticsearchmanager"
 	"gopkg.in/redis.v5"
 )
 
-var tag = fmt.Sprintf("[WORKER|%s]", jobType)
+var tag = fmt.Sprintf("[WORKER]")
 
 // InitializeWorker starts a connection with the redis server and inits a job handler
-func (jb *JobBuffer) InitializeWorker() {
+func (jb *JobBuffer) InitializeWorker(targetQueue string, jobType string, batchSize int) {
+	jb.targetQueue = targetQueue
+	jb.jobType = jobType
+	jb.batchSize = batchSize
+
+	tag = fmt.Sprintf("[WORKER|%s]", jb.jobType)
+
 	jb.redisClient = redis.NewClient(&redis.Options{
 		Addr: redisConnectionURL,
 	})
@@ -37,17 +43,17 @@ func (jb *JobBuffer) InitializeWorker() {
 
 // fetchNewJobs fetches a new batch of jobs from queue
 func (jb *JobBuffer) fetchNewJobs() []dal.RequestStats {
-	requests := make([]dal.RequestStats, batchSize)
+	requests := make([]dal.RequestStats, jb.batchSize)
 
 	var currentRequest dal.RequestStats
 
-	log.Printf("%s listening on queue {%s} to fetch job batch of size {%d}", tag, queueName, batchSize)
+	log.Printf("%s listening on queue {%s} to fetch job batch of size {%d}", tag, jb.targetQueue, jb.batchSize)
 
 	for idx := range requests {
-		res, err := jb.redisClient.BLPop(0, queueName).Result()
+		res, err := jb.redisClient.BLPop(0, jb.targetQueue).Result()
 
 		if err != nil {
-			log.Printf("%s failed to fetch new job from redis queue %s | errorLog: %s", tag, queueName, err)
+			log.Printf("%s failed to fetch new job from redis queue %s | errorLog: %s", tag, jb.targetQueue, err)
 		} else {
 
 			if len(res) == 2 { // [command string, result string]
@@ -69,7 +75,7 @@ func (jb *JobBuffer) fetchNewJobs() []dal.RequestStats {
 
 // executeJobs writes the batch of jobs data fetched from redis into DB
 func (jb *JobBuffer) executeJobs(requests []dal.RequestStats) bool {
-	switch jobType {
+	switch jb.jobType {
 
 	case dbWrite:
 		return jb.requestModel.CreateRequestStats(requests)
@@ -92,7 +98,7 @@ func (jb *JobBuffer) rollbackReadJobs(requests []dal.RequestStats) {
 
 			// push them back on the other side (right side) so they get delayed a bit
 			// and not be caught in an infinite loop reading and writing those jobs
-			_, err = jb.redisClient.RPush(queueName, dataBytes).Result()
+			_, err = jb.redisClient.RPush(jb.targetQueue, dataBytes).Result()
 			if err != nil {
 				log.Fatalf("%s Failed to write back job {%s} to queue | error %s", tag, dataBytes, err)
 			}

@@ -1,4 +1,4 @@
-module github.com/Kareem-Emad/new-new-relic
+module github.com/Kareem-Emad/simple-apm
 
 go 1.14
 

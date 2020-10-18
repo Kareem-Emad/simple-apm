@@ -4,9 +4,9 @@ import (
 	"flag"
 	"log"
 
-	"github.com/Kareem-Emad/new-new-relic/consumer"
-	"github.com/Kareem-Emad/new-new-relic/producer"
-	"github.com/Kareem-Emad/new-new-relic/server"
+	"github.com/Kareem-Emad/simple-apm/consumer"
+	"github.com/Kareem-Emad/simple-apm/producer"
+	"github.com/Kareem-Emad/simple-apm/server"
 )
 
 const (
@@ -21,9 +21,9 @@ func runServer() {
 	server.Start(pm)
 }
 
-func runWorker() {
+func runWorker(targetQueue string, jobType string, batchSize int) {
 	var cm consumer.JobBuffer
-	cm.InitializeWorker()
+	cm.InitializeWorker(targetQueue, jobType, batchSize)
 
 	for {
 		cm.FetchAndExecute()
@@ -32,6 +32,11 @@ func runWorker() {
 
 func main() {
 	runModePtr := flag.String("run_mode", serverMode, "specifies whether to run as server/worker")
+
+	targetQueuePtr := flag.String("target_queue", "none", "queue for worker to pull data from")
+	jobTypePtr := flag.String("job_type", "none", "type of job the worker will handle")
+	batchSizePtr := flag.Int("batch_size", 1, "Number of jobs to handle at one exec")
+
 	flag.Parse()
 
 	switch *runModePtr {
@@ -40,7 +45,7 @@ func main() {
 		return
 
 	case workerMode:
-		runWorker()
+		runWorker(*targetQueuePtr, *jobTypePtr, *batchSizePtr)
 		return
 
 	default:
