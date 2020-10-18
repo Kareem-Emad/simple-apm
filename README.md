@@ -8,6 +8,21 @@ an open source/in-house application performance management server that monitors 
 
 ## setup
 
+First make sure to init schema in both cassendra and elastic search
+
+```sh
+./elastic_init_index.sh
+```
+
+in `cqlsh`
+
+```sql
+create keyspace simple_apm with replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+use simple_apm;
+
+create table request_info (service_name text, url text, method text, status smallint, response_time int, created_at timestamp, primary key (service_name, created_at, method, url));
+```
+
 To run server
 
 ```shell
@@ -43,8 +58,7 @@ List of envs needs to be setup before starting the service
 
 ## SDK
 
-Currently we have sdks for:
-None :\
+- JS: <github.com/Kareem-Emad/simple-apm-express>
 
 ## custom SDK
 
