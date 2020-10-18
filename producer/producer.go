@@ -9,7 +9,7 @@ import (
 	"gopkg.in/redis.v5"
 )
 
-var tag = "[NEW_NEW_RELIC_Producer]"
+var tag = "[Producer]"
 
 // InitializeRedisConnection starts a connection with the redis server
 func (pm *ProductionManager) InitializeRedisConnection() {

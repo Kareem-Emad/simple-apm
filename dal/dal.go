@@ -66,7 +66,6 @@ func ValidateRequestStats(req RequestStats) bool {
 
 	validServiceName := (req.Service != "")
 
-	validCreationDate := (req.CreatedAt != "")
 	// time.Now().Format(time.RFC3339)
-	return validStatus && validResponseTime && validURL && validMethod && validServiceName && validCreationDate
+	return validStatus && validResponseTime && validURL && validMethod && validServiceName && req.CreatedAt != ""
 }

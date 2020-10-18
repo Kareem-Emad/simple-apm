@@ -6,12 +6,13 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Kareem-Emad/new-new-relic/auth"
 	"github.com/Kareem-Emad/new-new-relic/dal"
 	"github.com/Kareem-Emad/new-new-relic/producer"
 	"github.com/gorilla/mux"
 )
 
-var tag = "[NEW_NEW_RELIC_Server]"
+var tag = "[Server]"
 
 // Start starts an http server with the api routes loaded as specified
 func Start(pm producer.ProductionManager) {
@@ -21,13 +22,10 @@ func Start(pm producer.ProductionManager) {
 	r.HandleFunc("/requests", func(w http.ResponseWriter, r *http.Request) {
 		var payload dal.RequestStats
 
-		/*
-			if auth.Authenticate(r.Header) == false {
-				http.Error(w, "", http.StatusUnauthorized)
-				return
-			}
-		*/
-
+		if auth.Authenticate(r.Header) == false {
+			http.Error(w, "", http.StatusUnauthorized)
+			return
+		}
 		err := json.NewDecoder(r.Body).Decode(&payload)
 
 		if err != nil {

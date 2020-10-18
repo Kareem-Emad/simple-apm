@@ -8,7 +8,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-var tag = "[NEW_NEW_RELIC_Auth]"
+var tag = "[Auth]"
 
 // isValidJwtToken checks the structure of the jwt token is present
 // this function is necessary as passing a non-jwt string to jwt package panics the whole
