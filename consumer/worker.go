@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/Kareem-Emad/new-new-relic/dal"
-	elasticSearch "github.com/Kareem-Emad/new-new-relic/elastic_search"
+	"github.com/Kareem-Emad/new-new-relic/elasticsearchmanager"
 	"gopkg.in/redis.v5"
 )
 
@@ -27,6 +27,10 @@ func (jb *JobBuffer) InitializeWorker() {
 		jb.requestModel = &rm
 		return
 	case esSync:
+		var esClient elasticsearchmanager.ESClient
+		esClient.IntializeESClient()
+
+		jb.esClient = &esClient
 		return
 	}
 }
@@ -70,7 +74,7 @@ func (jb *JobBuffer) executeJobs(requests []dal.RequestStats) bool {
 	case dbWrite:
 		return jb.requestModel.CreateRequestStats(requests)
 	case esSync:
-		return elasticSearch.SyncES(requests)
+		return jb.esClient.SyncES(requests)
 
 	}
 

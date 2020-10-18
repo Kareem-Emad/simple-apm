@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/gocql/gocql"
 )
@@ -40,7 +39,7 @@ func (rm *RequestModel) CreateRequestStats(requests []RequestStats) bool {
 		if ValidateRequestStats(req) == true {
 			queryString := "INSERT INTO %s.request_info (service_name, created_at,  method, url, status, response_time)   VALUES ('%s', '%s', '%s', '%s', %d, %d)"
 
-			cqlStatment := fmt.Sprintf(queryString, cassandraKeySpace, req.Service, time.Now().Format(time.RFC3339), req.Method, req.URL, req.Status, req.TimeInMilliseconds)
+			cqlStatment := fmt.Sprintf(queryString, cassandraKeySpace, req.Service, req.CreatedAt, req.Method, req.URL, req.Status, req.TimeInMilliseconds)
 			log.Printf("%s adding query to batch: %s", tag, cqlStatment)
 
 			batch.Query(cqlStatment)
@@ -67,5 +66,7 @@ func ValidateRequestStats(req RequestStats) bool {
 
 	validServiceName := (req.Service != "")
 
-	return validStatus && validResponseTime && validURL && validMethod && validServiceName
+	validCreationDate := (req.CreatedAt != "")
+	// time.Now().Format(time.RFC3339)
+	return validStatus && validResponseTime && validURL && validMethod && validServiceName && validCreationDate
 }

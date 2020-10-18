@@ -14,4 +14,5 @@ type RequestStats struct {
 	TimeInMilliseconds int    `json:"response_time"`
 	Service            string `json:"service_name"`
 	Status             uint16 `json:"status_code"`
+	CreatedAt          string `json:"created_at"`
 }
