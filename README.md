@@ -27,7 +27,7 @@ To run server
 
 ```shell
 # run one instance of sever to handle http request and push jobs in queues
-make run run_server
+make run_server
 ```
 
 To run worker

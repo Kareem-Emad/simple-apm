@@ -28,7 +28,7 @@ func (jb *JobBuffer) InitializeWorker(targetQueue string, jobType string, batchS
 
 	case dbWrite:
 		var rm dal.RequestModel
-		rm.IntializeDBSession()
+		rm.IntializeDBSession(nil)
 
 		jb.requestModel = &rm
 		return
